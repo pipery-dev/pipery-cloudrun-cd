@@ -1,0 +1,105 @@
+name: 'Pipery Cloud Run CD'
+description: 'CD pipeline for Google Cloud Run: push image → gcloud run deploy → traffic migration and health check'
+inputs:
+  project_path:
+    description: 'Path to the project source tree.'
+    required: false
+    default: '.'
+  config_file:
+    description: 'Path to the pipery config file.'
+    required: false
+    default: '.github/pipery/config.yaml'
+  image_name:
+    description: 'Container image name to deploy (e.g. ghcr.io/org/app).'
+    required: false
+    default: ''
+  image_tag:
+    description: 'Container image tag to deploy.'
+    required: false
+    default: '${{ github.sha }}'
+  service_name:
+    description: 'Cloud Run service name.'
+    required: false
+    default: ''
+  region:
+    description: 'Google Cloud Run region.'
+    required: false
+    default: 'us-central1'
+  project_id:
+    description: 'Google Cloud project ID.'
+    required: false
+    default: ''
+  platform:
+    description: 'Target platform: managed or gke.'
+    required: false
+    default: 'managed'
+  traffic:
+    description: 'Percentage of traffic to route to new revision (0-100).'
+    required: false
+    default: '100'
+  min_instances:
+    description: 'Minimum number of Cloud Run instances.'
+    required: false
+    default: '0'
+  max_instances:
+    description: 'Maximum number of Cloud Run instances.'
+    required: false
+    default: '100'
+  concurrency:
+    description: 'Maximum concurrent requests per instance.'
+    required: false
+    default: '80'
+  skip_push:
+    description: 'Skip image push step.'
+    required: false
+    default: 'false'
+  skip_deploy:
+    description: 'Skip deploy step.'
+    required: false
+    default: 'false'
+  skip_status_check:
+    description: 'Skip health check step.'
+    required: false
+    default: 'false'
+  log_file:
+    description: 'Path to write the JSONL log file.'
+    required: false
+    default: 'pipery.jsonl'
+
+runs:
+  using: 'composite'
+  steps:
+  - name: Set up psh
+    uses: pipery-dev/pipery@v1
+
+  - name: Load config
+    shell: bash
+    run: src/read-config.sh
+    env:
+      INPUT_PROJECT_PATH: ${{ inputs.project_path }}
+      INPUT_CONFIG_FILE: ${{ inputs.config_file }}
+
+  - name: Push
+    shell: bash
+    run: src/step-push.sh
+    env:
+      INPUT_PROJECT_PATH: ${ inputs.project_path }
+      INPUT_LOG_FILE: ${ inputs.log_file }
+
+  - name: Deploy
+    shell: bash
+    run: src/step-deploy.sh
+    env:
+      INPUT_PROJECT_PATH: ${ inputs.project_path }
+      INPUT_LOG_FILE: ${ inputs.log_file }
+
+  - name: Status
+    shell: bash
+    run: src/step-status.sh
+    env:
+      INPUT_PROJECT_PATH: ${ inputs.project_path }
+      INPUT_LOG_FILE: ${ inputs.log_file }
+
+branding:
+  icon: cloud
+  color: blue

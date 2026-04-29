@@ -1,0 +1,118 @@
+owner = "pipery-dev"
+action_name = "pipery-cloudrun-cd"
+title = "Pipery Cloud Run CD"
+description = "CD pipeline for Google Cloud Run: push image → gcloud run deploy → traffic migration and health check"
+marketplace_category = "continuous-integration"
+author = "pipery-dev"
+action_type = "composite"
+default_branch = "main"
+version = "1.0.0"
+repository_visibility = "public"
+icon = "assets/icon.png"
+simple_icon = "googlecloud"
+test_command = ""
+test_project_path = "test-project"
+test_project_input = "project_path"
+test_log_path = "pipery.jsonl"
+test_log_success_values = ["success", "succeeded", "passed", "ok"]
+cleanup_paths = ["pipery.jsonl"]
+
+[[inputs]]
+name = "project_path"
+description = "Path to the project source tree."
+required = false
+default = "."
+
+[[inputs]]
+name = "config_file"
+description = "Path to the pipery config file."
+required = false
+default = ".github/pipery/config.yaml"
+
+[[inputs]]
+name = "image_name"
+description = "Container image name to deploy (e.g. ghcr.io/org/app)."
+required = false
+default = ""
+
+[[inputs]]
+name = "image_tag"
+description = "Container image tag to deploy."
+required = false
+default = "${{ github.sha }}"
+
+[[inputs]]
+name = "service_name"
+description = "Cloud Run service name."
+required = false
+default = ""
+
+[[inputs]]
+name = "region"
+description = "Google Cloud Run region."
+required = false
+default = "us-central1"
+
+[[inputs]]
+name = "project_id"
+description = "Google Cloud project ID."
+required = false
+default = ""
+
+[[inputs]]
+name = "platform"
+description = "Target platform: managed or gke."
+required = false
+default = "managed"
+
+[[inputs]]
+name = "traffic"
+description = "Percentage of traffic to route to new revision (0-100)."
+required = false
+default = "100"
+
+[[inputs]]
+name = "min_instances"
+description = "Minimum number of Cloud Run instances."
+required = false
+default = "0"
+
+[[inputs]]
+name = "max_instances"
+description = "Maximum number of Cloud Run instances."
+required = false
+default = "100"
+
+[[inputs]]
+name = "concurrency"
+description = "Maximum concurrent requests per instance."
+required = false
+default = "80"
+
+[[inputs]]
+name = "skip_push"
+description = "Skip image push step."
+required = false
+default = "false"
+
+[[inputs]]
+name = "skip_deploy"
+description = "Skip deploy step."
+required = false
+default = "false"
+
+[[inputs]]
+name = "skip_status_check"
+description = "Skip health check step."
+required = false
+default = "false"
+
+[[inputs]]
+name = "log_file"
+description = "Path to write the JSONL log file."
+required = false
+default = "pipery.jsonl"
+
+[[test_log_required_fields]]
+name = "event"
+value = "deploy"
