@@ -1,58 +1,85 @@
 # Pipery Cloud Run CD
 
-Reusable GitHub Action for Cloud Run CD with structured logging via [Pipery](https://pipery.dev).
+CD pipeline for Google Cloud Run: push image → gcloud run deploy → traffic migration and health check
 
-[![GitHub Marketplace](https://img.shields.io/badge/Marketplace-Pipery%20Cloud%20Run%20CD-blue?logo=github)](https://github.com/marketplace/actions/pipery-cloudrun-cd)
-[![Version](https://img.shields.io/badge/version-1.0.0-blue)](CHANGELOG.md)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+## Status
+
+- Owner: `pipery-dev`
+- Repository: `pipery-cloudrun-cd`
+- Marketplace category: `continuous-integration`
+- Current version: `2.0.0`
 
 ## Usage
 
 ```yaml
-name: CD
-on:
-  push:
-    branches: [main]
+name: Example
+on: [push]
 
 jobs:
-  cd:
-    uses: pipery-dev/pipery-cloudrun-cd@v1
-    with:
-      project_path: .
-    secrets: inherit
+  run-action:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pipery-dev/pipery-cloudrun-cd@v2
+        with:
+          project_path: .
+          config_file: .github/pipery/config.yaml
+          image_name: 
+          image_tag: ${{ github.sha }}
+          service_name: 
+          region: us-central1
+          project_id: 
+          platform: managed
+          traffic: 100
+          min_instances: 0
+          max_instances: 100
+          concurrency: 80
+          skip_push: false
+          skip_deploy: false
+          skip_status_check: false
+          log_file: pipery.jsonl
 ```
-
-## Pipeline steps
-
-push image → gcloud run deploy → traffic migration → health check
-
-Every step is logged to `pipery.jsonl` via psh and uploaded as a GitHub Actions artifact.
 
 ## Inputs
 
-| Input | Description | Default |
-|---|---|---|
-| `project_path` | Path to the project source tree. | `.` |
-| `config_file` | Path to the pipery config file. | `.github/pipery/config.yaml` |
-| `image_name` | Container image name to deploy (e.g. ghcr.io/org/app). | `` |
-| `image_tag` | Container image tag to deploy. | `${{ github.sha }}` |
-| `service_name` | Cloud Run service name. | `` |
-| `region` | Google Cloud Run region. | `us-central1` |
-| `project_id` | Google Cloud project ID. | `` |
-| `platform` | Target platform: managed or gke. | `managed` |
-| `traffic` | Percentage of traffic to route to new revision (0-100). | `100` |
-| `min_instances` | Minimum number of Cloud Run instances. | `0` |
-| `max_instances` | Maximum number of Cloud Run instances. | `100` |
-| `concurrency` | Maximum concurrent requests per instance. | `80` |
-| `skip_push` | Skip image push step. | `false` |
-| `skip_deploy` | Skip deploy step. | `false` |
-| `skip_status_check` | Skip health check step. | `false` |
-| `log_file` | Path to write the JSONL log file. | `pipery.jsonl` |
+| Name | Required | Default | Description |
+| --- | --- | --- | --- |
+| `project_path` | no | `.` | Path to the project source tree. |
+| `config_file` | no | `.github/pipery/config.yaml` | Path to the pipery config file. |
+| `image_name` | no | `` | Container image name to deploy (e.g. ghcr.io/org/app). |
+| `image_tag` | no | `${{ github.sha }}` | Container image tag to deploy. |
+| `service_name` | no | `` | Cloud Run service name. |
+| `region` | no | `us-central1` | Google Cloud Run region. |
+| `project_id` | no | `` | Google Cloud project ID. |
+| `platform` | no | `managed` | Target platform: managed or gke. |
+| `traffic` | no | `100` | Percentage of traffic to route to new revision (0-100). |
+| `min_instances` | no | `0` | Minimum number of Cloud Run instances. |
+| `max_instances` | no | `100` | Maximum number of Cloud Run instances. |
+| `concurrency` | no | `80` | Maximum concurrent requests per instance. |
+| `skip_push` | no | `false` | Skip image push step. |
+| `skip_deploy` | no | `false` | Skip deploy step. |
+| `skip_status_check` | no | `false` | Skip health check step. |
+| `log_file` | no | `pipery.jsonl` | Path to write the JSONL log file. |
 
-## Observability
+## Outputs
 
-Each run produces a `pipery.jsonl` file. Upload it as an artifact and inspect it with the [Pipery Dashboard](https://dash.pipery.dev).
+No outputs.
 
-## License
+## Development
 
-MIT — see [LICENSE](LICENSE).
+This repository is managed with `pipery-tooling`.
+
+```bash
+pipery-actions test --repo .
+pipery-actions docs --repo .
+pipery-actions release --repo . --dry-run
+```
+
+By default, `pipery-actions test --repo .` executes the action against `test-project` and validates `pipery.jsonl`.
+
+## Marketplace Release Flow
+
+1. Update the implementation and changelog.
+2. Run `pipery-actions release --repo .`.
+3. Push the created git tag and major tag alias.
+4. Publish the GitHub release.
