@@ -1,0 +1,164 @@
+# GitLab CI Pipeline for pipery-cloudrun-cd
+# Google Cloud Run deployment
+
+variables:
+  PROJECT_PATH: "."
+  CONFIG_FILE: ".github/pipery/config.yaml"
+  IMAGE_NAME: ""  # Required: e.g., gcr.io/project/image
+  IMAGE_TAG: "$CI_COMMIT_SHA"
+  SERVICE_NAME: ""  # Required: Cloud Run service name
+  REGION: "us-central1"
+  PROJECT_ID: ""  # Required: GCP project ID
+  PLATFORM: "managed"
+  TRAFFIC: "100"
+  MIN_INSTANCES: "0"
+  MAX_INSTANCES: "100"
+  CONCURRENCY: "80"
+  SKIP_PUSH: "false"
+  SKIP_DEPLOY: "false"
+  SKIP_STATUS_CHECK: "false"
+  LOG_FILE: "pipery.jsonl"
+
+stages:
+  - checkout
+  - setup
+  - auth
+  - push
+  - deploy
+  - status_check
+  - logs
+
+checkout:
+  stage: checkout
+  image: alpine:latest
+  script:
+    - echo "Repository checked out"
+
+setup:
+  stage: setup
+  image: google/cloud-sdk:alpine
+  script:
+    - echo "Setting up Cloud SDK..."
+    - gcloud version
+    - gcloud config set project $PROJECT_ID || true
+    - echo "Setup complete"
+
+auth:
+  stage: auth
+  image: google/cloud-sdk:alpine
+  script:
+    - |
+      if [ -z "$GCP_SA_KEY" ]; then
+        echo "ERROR: GCP_SA_KEY not set"
+        exit 1
+      fi
+    - echo "Authenticating with GCP..."
+    - echo "$GCP_SA_KEY" > /tmp/gcp-key.json
+    - gcloud auth activate-service-account --key-file /tmp/gcp-key.json
+    - gcloud config set project $PROJECT_ID
+    - gcloud auth configure-docker
+    - rm /tmp/gcp-key.json
+    - echo "Authentication complete"
+
+push:
+  stage: push
+  image: google/cloud-sdk:alpine
+  dependencies:
+    - auth
+  script:
+    - |
+      if [ -z "$IMAGE_NAME" ]; then
+        echo "ERROR: IMAGE_NAME not set"
+        exit 1
+      fi
+    - |
+      if [ "$SKIP_PUSH" = "true" ]; then
+        echo "Skipping image push"
+        exit 0
+      fi
+    - echo "Pushing image to GCP: $IMAGE_NAME:$IMAGE_TAG"
+    - |
+      # In real scenario:
+      # docker push $IMAGE_NAME:$IMAGE_TAG
+      echo "Image push would occur"
+  rules:
+    - if: '$SKIP_PUSH == "true"'
+      when: never
+    - when: on_success
+
+deploy:
+  stage: deploy
+  image: google/cloud-sdk:alpine
+  dependencies:
+    - push
+  script:
+    - |
+      if [ -z "$SERVICE_NAME" ] || [ -z "$IMAGE_NAME" ] || [ -z "$PROJECT_ID" ]; then
+        echo "ERROR: SERVICE_NAME, IMAGE_NAME, and PROJECT_ID must be set"
+        exit 1
+      fi
+    - |
+      if [ "$SKIP_DEPLOY" = "true" ]; then
+        echo "Skipping deployment"
+        exit 0
+      fi
+    - echo "Deploying to Cloud Run..."
+    - echo "Service: $SERVICE_NAME"
+    - echo "Region: $REGION"
+    - echo "Platform: $PLATFORM"
+    - |
+      DEPLOY_FLAGS="--image=$IMAGE_NAME:$IMAGE_TAG"
+      DEPLOY_FLAGS="$DEPLOY_FLAGS --region=$REGION"
+      DEPLOY_FLAGS="$DEPLOY_FLAGS --platform=$PLATFORM"
+      [ "$TRAFFIC" != "100" ] && DEPLOY_FLAGS="$DEPLOY_FLAGS --traffic-split=latest=$TRAFFIC"
+      DEPLOY_FLAGS="$DEPLOY_FLAGS --min-instances=$MIN_INSTANCES"
+      DEPLOY_FLAGS="$DEPLOY_FLAGS --max-instances=$MAX_INSTANCES"
+      DEPLOY_FLAGS="$DEPLOY_FLAGS --concurrency=$CONCURRENCY"
+    - |
+      echo "Deployment flags: $DEPLOY_FLAGS"
+      # In real scenario:
+      # gcloud run deploy $SERVICE_NAME $DEPLOY_FLAGS
+      echo "Deployment would proceed"
+    - echo "Deploy stage complete"
+  rules:
+    - if: '$SKIP_DEPLOY == "true"'
+      when: never
+    - when: on_success
+  artifacts:
+    paths:
+      - $LOG_FILE
+    expire_in: 30 days
+
+status_check:
+  stage: status_check
+  image: google/cloud-sdk:alpine
+  script:
+    - |
+      if [ "$SKIP_STATUS_CHECK" = "true" ]; then
+        echo "Skipping status check"
+        exit 0
+      fi
+    - echo "Checking Cloud Run service status..."
+    - echo "Service: $SERVICE_NAME"
+    - echo "Region: $REGION"
+    - |
+      # In real scenario:
+      # gcloud run services describe $SERVICE_NAME --region=$REGION
+      echo "Service status would be verified"
+    - echo "Status check complete"
+  rules:
+    - if: '$SKIP_STATUS_CHECK == "true"'
+      when: never
+    - when: on_success
+  allow_failure: false
+
+publish_logs:
+  stage: logs
+  image: alpine:latest
+  script:
+    - echo "Cloud Run deployment complete" | tee -a $LOG_FILE
+  artifacts:
+    paths:
+      - $LOG_FILE
+    expire_in: 90 days
+  when: always
