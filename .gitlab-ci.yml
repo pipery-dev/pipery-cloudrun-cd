@@ -3,7 +3,7 @@
 
 variables:
   PROJECT_PATH: "."
-  CONFIG_FILE: ".github/pipery/config.yaml"
+  CONFIG_FILE: ".pipery/config.yaml"
   IMAGE_NAME: ""  # Required: e.g., gcr.io/project/image
   IMAGE_TAG: "$CI_COMMIT_SHA"
   SERVICE_NAME: ""  # Required: Cloud Run service name
