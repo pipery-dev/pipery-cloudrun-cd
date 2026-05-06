@@ -76,6 +76,37 @@ include:
 
 No outputs.
 
+## Bitbucket Pipelines
+
+Bitbucket Cloud pipelines support this deployment workflow. The equivalent configuration is in `bitbucket-pipelines.yml`.
+
+### Quick Start
+
+1. Copy `bitbucket-pipelines.yml` to your Bitbucket repository root
+2. Configure GCP credentials in Repository Variables:
+   - `GCLOUD_SERVICE_KEY_BASE64` - Base64-encoded GCP service account key
+   - `GCLOUD_PROJECT_ID` - GCP project ID
+3. Configure Cloud Run service name and region
+4. Commit to trigger deployment
+
+### Pipeline Stages
+
+- checkout → setup → deploy → status_check → logs
+
+### Features
+
+- Google Cloud Run serverless deployment
+- Service authentication and configuration
+- Memory, CPU, and timeout settings
+- Max/min instance configuration
+- Health verification
+- 90-day log retention
+
+### Documentation
+
+- See `bitbucket-pipelines.yml` for complete customization options
+- Refer to [Bitbucket Pipelines Documentation](https://support.atlassian.com/bitbucket-cloud/docs/get-started-with-bitbucket-pipelines/) for detailed reference
+
 ## Development
 
 This repository is managed with `pipery-tooling`.
